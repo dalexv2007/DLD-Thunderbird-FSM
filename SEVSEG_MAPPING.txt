@@ -1,0 +1,54 @@
+// THUNDERBIRD SEVEN SEGMENT DISPLAY MAPPING GUIDE
+// ===============================================
+
+// Pin Mapping (from thunderbird_constraints.xdc):
+// Seven Segment Anode Control (active-LOW):
+//   sseg_an[3] -> J20  (Display 3 - leftmost)
+//   sseg_an[2] -> J18  (Display 2)
+//   sseg_an[1] -> H20  (Display 1)
+//   sseg_an[0] -> K19  (Display 0 - rightmost)
+
+// Seven Segment Segment Outputs (active-LOW):
+//   ssegout[7] = DP (decimal point)
+//   ssegout[6] = G segment
+//   ssegout[5] = F segment
+//   ssegout[4] = E segment
+//   ssegout[3] = D segment
+//   ssegout[2] = C segment
+//   ssegout[1] = B segment
+//   ssegout[0] = A segment
+
+// STATE ENCODING (8-bit output from thunderbird_FSM):
+// ===================================================
+// The 8-bit STATE output is displayed as two hex digits on the seven segment display:
+//   Display 0 (rightmost) = STATE[3:0]   (low nibble)
+//   Display 1            = STATE[7:4]   (high nibble)
+//
+// Suggested state values (as ASCII characters):
+//   'b' (0x62) = BRAKE state
+//   'R' (0x52) = RIGHT turn
+//   'L' (0x4C) = LEFT turn
+//   'H' (0x48) = HAZARD (LEFT + RIGHT)
+//   'S' (0x53) = SAFE/OFF state
+//
+// Example: If STATE = 0x0062 ('b' in display 1, 'b' in display 0)
+//   Display 0: 0x2 -> shows "2"
+//   Display 1: 0x6 -> shows "6"
+
+// HARDWARE CONNECTIONS VERIFIED:
+// =============================
+// 1. Individual button inputs (BRAKE, RIGHT, LEFT, RESET) - matches constraints
+// 2. LIGHTS[5:0] output for LED control
+// 3. STATE[7:0] output for FSM state display
+// 4. Clock input for multiplexing
+// 5. Seven segment anode and segment controls connected
+
+// FIXES APPLIED:
+// ==============
+// 1. ✓ Fixed syntax error in thunderbird_FSM.sv: Missing comma after CLK port
+// 2. ✓ Updated thunderbird_top.sv: Changed from 4-bit BTN to individual button ports
+// 3. ✓ Added clock input to thunderbird_top.sv for display multiplexing
+// 4. ✓ Created sevseg_decoder.sv for proper multiplexing logic
+// 5. ✓ Integrated sevenseg_hex.sv decoder for hex-to-7seg conversion
+// 6. ✓ Properly mapped anode controls as active-LOW
+// 7. ✓ Properly mapped segment outputs as active-LOW

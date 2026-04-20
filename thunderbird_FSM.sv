@@ -1,53 +1,61 @@
-module thunderbird_FSM (
-    input wire clk,
-    input wire rst_n,
-    input wire start,
-    output reg [2:0] state
+module thunderbird_FSM ( //comments represent sevseg display of state. Additional state "H" for hazard state (= L+R together)
+    input logic BRAKE, // represented as "b"
+    input logic RIGHT, // "R"
+    input logic LEFT, // "L"
+    input logic RESET, 
+    input logic CLK,
+    output logic [5:0] LIGHTS,
+    output logic [7:0] STATE
 );
 
-    typedef enum logic [2:0] {
-        IDLE = 3'b000,
-        LOAD = 3'b001,
-        PROCESS = 3'b010,
-        DONE = 3'b011
+    typedef enum logic [7:0] {
+        L = 8'h0A, // L
+        R = 8'h0B, // R
+        B = 8'h0C, // b (brake)
+        H = 8'h0D, // H (hazard)
+        IDLE = 8'hFF // Idle state (all lights off)
     } state_t;
-
+    
     state_t current_state, next_state;
-
+    
     // State transition logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            current_state <= IDLE;
-        end else begin
-            current_state <= next_state;
-        end
-    end
-
-    // Next state logic
     always_comb begin
         case (current_state)
             IDLE: begin
-                if (start) begin
-                    next_state = LOAD;
-                end else begin
-                    next_state = IDLE;
-                end
+                if (RESET) next_state = IDLE;
+                else if (LEFT && RIGHT) next_state = H; // Hazard if both L and R are pressed
+                else if (LEFT) next_state = L;
+                else if (RIGHT) next_state = R;
+                else if (BRAKE) next_state = B;
+                else next_state = IDLE;
             end
-            LOAD: begin
-                next_state = PROCESS;
+            
+            L: begin
+                if (RESET) next_state = IDLE;
+                else if (LEFT && RIGHT) next_state = H;
+                else if (!LEFT) next_state = IDLE;
+                else next_state = L;
             end
-            PROCESS: begin
-                next_state = DONE;
+            
+            R: begin
+                if (RESET) next_state = IDLE;
+                else if (LEFT && RIGHT) next_state = H; 
+                else if (!RIGHT) next_state = IDLE; 
+                else next_state = R; 
             end
-            DONE: begin
-                next_state = IDLE;
+            
+            B: begin
+                if (RESET) next_state = IDLE;
+                else if (!BRAKE) next_state = IDLE; 
+                else next_state = B; 
             end
-            default: next_state = IDLE;
+            
+            H: begin
+                if (RESET) next_state = IDLE;
+                else if (!LEFT && !RIGHT) next_state = IDLE; 
+                else next_state = H; 
+            end
         endcase
     end
 
-    // Output logic
-    always_comb begin
-        state = current_state;
-    end
 endmodule

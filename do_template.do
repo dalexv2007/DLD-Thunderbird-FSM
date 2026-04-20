@@ -24,7 +24,7 @@ if [file exists work] {
 vlib work
 
 # compile source files
-vlog TEMPLATE.sv TEMPLATE_tb.sv
+vlog thunderbird_FSM.sv thunderbird_tb.sv
 
 # start and run simulation
 vsim -voptargs=+acc work.tb 
