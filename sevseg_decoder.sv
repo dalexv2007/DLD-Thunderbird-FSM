@@ -1,9 +1,9 @@
 // sevseg_decoder.sv
-// Multiplexes and displays a 4-digit value on seven segment displays
+// Maps FSM state values to seven segment display patterns
 
 module sevseg_decoder (
     input logic CLK,
-    input logic [7:0] data_in,      // 8-bit data to display (shown as 2 hex digits); = STATE
+    input logic [7:0] data_in,      // 8-bit STATE from FSM
     output logic [3:0] sseg_an,     // Anode control (active-low)
     output logic [7:0] ssegout      // Segment output [a b c d e f g dp]
 );
@@ -22,20 +22,31 @@ module sevseg_decoder (
         counter <= counter + 1;
     end
     
-    // Select which digit to display
+    // Map FSM state to display character
+    always_comb begin
+        case (data_in)
+            // Left turn states (LA, LB, LC) -> display 'L'
+            8'h10, 8'h11, 8'h12: sseg_digit = 4'hA;    // Any L state -> display 'L'
+            // Right turn states (RA, RB, RC) -> display 'R'  
+            8'h20, 8'h21, 8'h22: sseg_digit = 4'hB;    // Any R state -> display 'R'
+            // Other states
+            8'h0C: sseg_digit = 4'hC;    // State B -> display 'b'
+            8'h0D: sseg_digit = 4'hD;    // State H -> display 'H'
+            8'hFF: sseg_digit = 4'hF;    // IDLE -> blank display
+            default: sseg_digit = 4'hF;  // Default to blank
+        endcase
+    end
+    
+    // Select which digit to display (only use rightmost display for single character)
     always_comb begin
         case (counter)
             2'b00: begin
-                sseg_digit = data_in[3:0];    // Low nibble
-                sseg_an = 4'b1110;            // Enable display 0
-            end
-            2'b01: begin
-                sseg_digit = data_in[7:4];    // High nibble
-                sseg_an = 4'b1101;            // Enable display 1
+                // sseg_digit already set above based on STATE
+                sseg_an = 4'b1110;            // Enable display 0 (rightmost)
             end
             default: begin
-                sseg_digit = 4'h0;
-                sseg_an = 4'b1111;            // All displays off
+                sseg_digit = 4'hF;           // Blank for other displays
+                sseg_an = 4'b1111;           // All displays off
             end
         endcase
     end
