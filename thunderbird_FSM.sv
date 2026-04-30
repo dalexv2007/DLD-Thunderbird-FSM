@@ -1,137 +1,198 @@
-module thunderbird_FSM ( //comments represent sevseg display of state. Additional state "H" for hazard state (= L+R together)
-    input logic BRAKE, // represented as "b"
-    input logic RIGHT, // "R"
-    input logic LEFT, // "L"
+module thunderbird_FSM ( 
+    input logic BRAKE, //project inputs, treated as bools where true = 1 = pressed.
+    input logic RIGHT, 
+    input logic LEFT,
     input logic RESET, 
     input logic CLK,
     output logic [5:0] LIGHTS,
-    output logic [7:0] STATE
+    output logic [7:0] SSEG
 );
 
-    typedef enum logic [7:0] {
-        IDLE = 8'hFF,  // Idle state (all lights off)
-        LA = 8'h10,     // Left turn: LA ON
-        LB = 8'h11,     // Left turn: LA + LB ON
-        LC = 8'h12,     // Left turn: LA + LB + LC ON
-        RA = 8'h20,     // Right turn: RA ON
-        RB = 8'h21,     // Right turn: RA + RB ON
-        RC = 8'h22,     // Right turn: RA + RB + RC ON
-        B = 8'h0C,      // Brake: all lights ON
-        H = 8'h0D       // Hazard: LA + RA ON
+    typedef enum logic [2:0] { //main states
+        S_IDLE,
+        S_LEFT,
+        S_RIGHT,
+        S_BRAKE, 
+        S_HAZARD
     } state_t;
-    
+
     state_t current_state, next_state;
+
+    typedef enum logic [2:0] { //substates type. Not containers, just trackers.
+        ID,
+        LA,
+        LB,
+        LC,
+        RA,
+        RB,
+        RC,
+        B
+    } substate_t;
     
-    // State register
-    always_ff @(posedge CLK) begin
+    substate_t current_lights, next_lights;
+    
+    // functions to +1 light sequence for left and right turns
+    function substate_t next_left_light(substate_t current); //use: next = func(current) sends back next
+        case (current)
+            LA: return LB;
+            LB: return LC;
+            default: return LA; //shouldn't reach here, func caller need to just not be stupid. handles errors ig
+        endcase
+    endfunction
+    
+    // Function to advance RIGHT light sequence
+    function substate_t next_right_light(substate_t current);
+        case (current)
+            RA: return RB;
+            RB: return RC;
+            default: return RA; // this is fine, unexpected behavior defaults to simple handling. 
+        endcase
+    endfunction
+    
+    // register to update state and lights on each cycle
+    always_ff @(posedge CLK) begin //on every clock edge update state and lights
         if (RESET) begin
-            current_state <= IDLE;
-        end else begin
-            current_state <= next_state;
+            current_state <= S_IDLE;
+            current_lights <= S_IDLE;
+        end 
+        else begin
+            current_state <= next_state; //send next state to register to use on next cycle
+            current_lights <= next_lights;
         end
     end
     
-    // Output logic
-    assign STATE = current_state;
-    
-    // LIGHTS output: [5:0] = [LC LB LA RA RB RC]
-    // Active HIGH: 1 = LED ON
-    always_comb begin
-        case (current_state)
-            LA: LIGHTS = 6'b001000;     // LA ON (left arrow start)
-            LB: LIGHTS = 6'b011000;     // LA + LB ON
-            LC: LIGHTS = 6'b111000;     // LA + LB + LC ON (full left turn)
-            RA: LIGHTS = 6'b000100;     // RA ON (right arrow start)
-            RB: LIGHTS = 6'b000110;     // RA + RB ON
-            RC: LIGHTS = 6'b000111;     // RA + RB + RC ON (full right turn)
-            B: LIGHTS = 6'b111111;      // All lights ON (brake)
-            H: LIGHTS = 6'b001100;      // LA and RA ON (hazard)
-            IDLE: LIGHTS = 6'b000000;   // All lights OFF
-            default: LIGHTS = 6'b000000;
+    // Output logic:
+    assign STATE = current_state; // now we are in a state, can work independent cycle logic
+
+    always_comb begin // switch sets SSEG output based on current state
+        case(current_state)
+            S_IDLE: SSEG = 8'hFF; // blank
+            S_LEFT: SSEG = 8'h10; // L
+            S_RIGHT: SSEG = 8'h20; // R
+            S_BRAKE: SSEG = 8'h0C; // b
+            S_HAZARD: SSEG = 8'h0D; // H
+            default: SSEG = 8'hFF;
         endcase
     end
     
-    // State transition logic
     always_comb begin
-        case (current_state)
-            IDLE: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else if (LEFT) next_state = LA;      // Start left turn sequence
-                else if (RIGHT) next_state = RA;     // Start right turn sequence
-                else next_state = IDLE;
-            end
-            
-            // Left turn sequence
-            LA: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else next_state = LB;  // Advance to LB
-            end
-            
-            LB: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else next_state = LC;  // Advance to LC
-            end
-            
-            LC: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else if (LEFT) next_state = LA;
-                else next_state = IDLE;  // restart to LA if LEFT still pressed, otherwise go to IDLE if LEFT released
-            end
-            
-            // Right turn sequence
-            RA: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else next_state = RB;  // Advance to RB
-            end
-            
-            RB: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else next_state = RC;  // Advance to RC
-            end
-            
-            RC: begin
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (LEFT && RIGHT) next_state = H;
-                else if (RIGHT) next_state = RA;
-                else next_state = IDLE;  // restart to RA if RIGHT still pressed, otherwise go to IDLE if RIGHT released
-            end
-            
-            B: begin  // Brake state
-                if (RESET) next_state = IDLE;
-                else if (!BRAKE) begin // Return to previous turn state or IDLE
-                    if (LEFT && RIGHT) next_state = H;
-                    else if (LEFT) next_state = LA;    // begin L/R turns if pressed
-                    else if (RIGHT) next_state = RA;
-                    else next_state = IDLE;
+        case (current_lights) // switch sets LED outputs by assigning LIGHT value based on substate current_lights.
+            LA: LIGHTS = 6'b001000;
+            LB: LIGHTS = 6'b011000;
+            LC: LIGHTS = 6'b111000;
+            RA: LIGHTS = 6'b000100;
+            RB: LIGHTS = 6'b000110;   
+            RC: LIGHTS = 6'b000111;
+            B: LIGHTS = 6'b111111;      
+            ID: LIGHTS = 6'b000000; 
+            default: LIGHTS = 6'b000000;
+        endcase
+    end
+
+    // State transition logic: here's my main FSM
+    always_comb begin // for any state, being in that state = lights are already set, as when next_state is set next_lights is set with it (can i optimize)?
+        case (current_state) // = "for whatever button pressed, do this," where button pressed corresponding state_t = true
+            S_IDLE: begin // only case with no button input except reset.
+                next_lights = ID; // all lights initialized from the case it's coming from.
+
+                if (BRAKE) begin //ifs pretty self explanatory, if (input) -> set that state for next cycle
+                    next_state = S_BRAKE;
+                    next_lights = B; //also initialize lights for the state
                 end 
-                else next_state = B;
-            end
-            
-            H: begin  // Hazard state
-                if (RESET) next_state = IDLE;
-                else if (BRAKE) next_state = B;
-                else if (!(LEFT && RIGHT)) begin //if both not pressed...
-                    if (LEFT && !RIGHT) next_state = LA; //enter LA if left only
-                    else if (!LEFT && RIGHT) next_state = RA; //enter RA if right only
-                    else next_state = IDLE; //otherwise back to IDLE
+                else if (LEFT && RIGHT) begin
+                    next_state = S_HAZARD;
+                    next_lights = H;
                 end 
-                else next_state = H; //if both still pressed, stay in H
+                else if (LEFT) begin
+                    next_state = S_LEFT;
+                    next_lights = LA;
+                end 
+                else if (RIGHT) begin
+                    next_state = S_RIGHT;
+                    next_lights = RA;
+                end
             end
             
-            default: next_state = IDLE;
+            LEFT: begin //left sequence, lights should be initialized from wherever it came from
+                if (BRAKE) begin
+                    next_state = S_BRAKE;
+                    next_lights = B;
+                end else if (LEFT && RIGHT) begin 
+                    next_state = S_HAZARD;
+                    next_lights = H;
+                end else if (current_lights == LC) begin //won't repeat because LC is an exit condition
+                    next_state = S_IDLE;
+                    next_lights = ID;
+                end //end exit conditions
+
+                else begin //if no exit condition hit, move to next L sequence state
+                    next_state = S_LEFT; //reinforces S_LEFT so it'll stay in S_LEFT no matter what unless exit condition hit. should exit S_LEFT upon hitting LC though.
+                    next_lights = next_left_light(current_lights); //technically will never receive LC input, if it did func would default to LA and reset seq
+                end
+            end
+            
+            RIGHT: begin
+                if (BRAKE) begin
+                    next_state = S_BRAKE;
+                    next_lights = B;
+                end else if (LEFT && RIGHT) begin
+                    next_state = S_HAZARD;
+                    next_lights = H;
+                end else if (current_lights == RC) begin
+                    next_state = S_IDLE;
+                    next_lights = ID;
+                end  //end exit conditions
+
+                else begin
+                    next_state = RIGHT;
+                    next_lights = next_right_light(current_lights); //call nextlight func
+                end
+            end
+            
+            BRAKE: begin
+                if (!BRAKE) begin //when brake released check for new input, otherwise default S_IDLE.
+                    if (LEFT && RIGHT) begin
+                        next_state = S_HAZARD;
+                        next_lights = H;
+                    end else if (LEFT) begin
+                        next_state = S_LEFT;
+                        next_lights = LA;
+                    end else if (RIGHT) begin
+                        next_state = S_RIGHT;
+                        next_lights = RA;
+
+                    end else begin //default to S_IDLE
+                        next_state = S_IDLE;
+                        next_lights = ID;
+                    end
+                end
+            end
+            
+            HAZARD: begin
+                if (BRAKE) begin
+                    next_state = S_BRAKE;
+                    next_lights = B;
+                end 
+                else if (!(LEFT && RIGHT)) begin //if released
+                    if (LEFT && !RIGHT) begin //if just L
+                        next_state = S_LEFT;
+                        next_lights = LA;
+                    end 
+                    else if (!LEFT && RIGHT) begin //if just R
+                        next_state = S_RIGHT;
+                        next_lights = RA;
+                    end 
+                    else begin //default to IDLE if neithercaught above.
+                        next_state = S_IDLE;
+                        next_lights = ID;
+                    end
+                end
+            end
+            
+            default: begin //naturally default main FSM to S_IDLE.
+                next_state = S_IDLE;
+                next_lights = ID;
+            end
         endcase
     end
 
