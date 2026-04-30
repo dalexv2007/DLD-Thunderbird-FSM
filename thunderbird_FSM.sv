@@ -88,6 +88,9 @@ module thunderbird_FSM (
             RA: LIGHTS = 6'b000100;
             RB: LIGHTS = 6'b000110;   
             RC: LIGHTS = 6'b000111;
+            HA: LIGHTS = 6'b100100;
+            HB: LIGHTS = 6'b110110;
+            HC: LIGHTS = 6'b111111;
             B: LIGHTS = 6'b111111;      
             ID: LIGHTS = 6'b000000; 
             default: LIGHTS = 6'b000000;
