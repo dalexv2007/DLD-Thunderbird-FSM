@@ -18,20 +18,18 @@ module thunderbird_FSM (
 
     state_t current_state, next_state;
 
-    typedef enum logic [2:0] { //substates type. Not containers, just trackers.
+    typedef enum logic [3:0] { //substates type. Not containers, just trackers.
         ID,
-        LA,
-        LB,
-        LC,
-        RA,
-        RB,
-        RC,
-        B
+        LA, LB, LC,
+        RA, RB, RC,
+        HA, HB, HC,
+        B,
+
     } substate_t;
     
     substate_t current_lights, next_lights;
     
-    // functions to +1 light sequence for left and right turns
+    // functions to +1 light sequence for left and right turns (and HAZARD)
     function substate_t next_left_light(substate_t current); //use: next = func(current) sends back next
         case (current)
             LA: return LB;
@@ -48,7 +46,15 @@ module thunderbird_FSM (
             default: return RA; // this is fine, unexpected behavior defaults to simple handling. 
         endcase
     endfunction
-    
+
+    function substate_t next_hazard_light(substate_t current); // S_HAZARD increment
+        case (current)
+            HA: return HB;
+            HB: return HC;
+            default: return HA; // this is fine, unexpected behavior defaults to simple handling. 
+        endcase
+    endfunction
+
     // register to update state and lights on each cycle
     always_ff @(posedge CLK) begin //on every clock edge update state and lights
         if (RESET) begin
@@ -62,7 +68,6 @@ module thunderbird_FSM (
     end
     
     // Output logic:
-    assign STATE = current_state; // now we are in a state, can work independent cycle logic
 
     always_comb begin // switch sets SSEG output based on current state
         case(current_state)
@@ -101,7 +106,6 @@ module thunderbird_FSM (
                 end 
                 else if (LEFT && RIGHT) begin
                     next_state = S_HAZARD;
-                    next_lights = H;
                 end 
                 else if (LEFT) begin
                     next_state = S_LEFT;
@@ -113,13 +117,12 @@ module thunderbird_FSM (
                 end
             end
             
-            LEFT: begin //left sequence, lights should be initialized from wherever it came from
+            S_LEFT: begin //left sequence, lights should be initialized from wherever it came from
                 if (BRAKE) begin
                     next_state = S_BRAKE;
                     next_lights = B;
                 end else if (LEFT && RIGHT) begin 
                     next_state = S_HAZARD;
-                    next_lights = H;
                 end else if (current_lights == LC) begin //won't repeat because LC is an exit condition
                     next_state = S_IDLE;
                     next_lights = ID;
@@ -131,13 +134,12 @@ module thunderbird_FSM (
                 end
             end
             
-            RIGHT: begin
+            S_RIGHT: begin
                 if (BRAKE) begin
                     next_state = S_BRAKE;
                     next_lights = B;
                 end else if (LEFT && RIGHT) begin
                     next_state = S_HAZARD;
-                    next_lights = H;
                 end else if (current_lights == RC) begin
                     next_state = S_IDLE;
                     next_lights = ID;
@@ -149,8 +151,8 @@ module thunderbird_FSM (
                 end
             end
             
-            BRAKE: begin
-                if (!BRAKE) begin //when brake released check for new input, otherwise default S_IDLE.
+            S_BRAKE: begin
+                if (!BRAKE) begin //only exit condition = when released, find out where to go next or default to S_IDLE.
                     if (LEFT && RIGHT) begin
                         next_state = S_HAZARD;
                         next_lights = H;
@@ -168,24 +170,19 @@ module thunderbird_FSM (
                 end
             end
             
-            HAZARD: begin
+            S_HAZARD: begin
                 if (BRAKE) begin
                     next_state = S_BRAKE;
                     next_lights = B;
-                end 
-                else if (!(LEFT && RIGHT)) begin //if released
-                    if (LEFT && !RIGHT) begin //if just L
-                        next_state = S_LEFT;
-                        next_lights = LA;
-                    end 
-                    else if (!LEFT && RIGHT) begin //if just R
-                        next_state = S_RIGHT;
-                        next_lights = RA;
-                    end 
-                    else begin //default to IDLE if neithercaught above.
-                        next_state = S_IDLE;
-                        next_lights = ID;
-                    end
+                end else if(current_lights == HC) begin
+                    next_state = S_IDLE;
+                    next_lights = ID;
+                end //only 2 exit conditions: brake or end sequence.
+
+                else begin //no exit condition caught...
+                    next_state = S_HAZARD; //stay in S_HAZARD
+                    next_lights = next_hazard_light(current_lights); //call increment lights, exits upon reaching HC.
+                
                 end
             end
             
