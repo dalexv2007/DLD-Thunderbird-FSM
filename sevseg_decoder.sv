@@ -10,9 +10,9 @@ module sevseg_decoder (
     always_comb begin
         case (data_in)
             3'd0: ssegout = 8'b11111111;  // IDLE = OFF 
-            3'd1: ssegout = 8'b11000010;  // LEFT = L
-            3'd2: ssegout = 8'b10101111;  // RIGHT = r
-            3'd3: ssegout = 8'b10000011;  // BRAKE = b
+            3'd1: ssegout = 8'b11100011;  // LEFT  = L
+            3'd2: ssegout = 8'b11110101;  // RIGHT = r
+            3'd3: ssegout = 8'b11000001;  // BRAKE = b
             3'd4: ssegout = 8'b10010001;  // HAZARD = H
 
             default: ssegout = 8'b00000000; // default blank

@@ -1,7 +1,6 @@
 module clock_divider (
     input logic clk_in,
-    output logic clk_200Hz,
-    output logic clk_1Hz
+    output logic clk_out
 );
     logic [31:0] counter = 0;
 
