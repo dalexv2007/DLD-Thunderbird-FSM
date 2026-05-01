@@ -9,6 +9,5 @@ module clock_divider (
         counter <= counter + 1;
     end
 
-    assign clk_200Hz = counter[18];
-    assign clk_1Hz = counter[25];
+    assign clk_out = counter[25];
 endmodule

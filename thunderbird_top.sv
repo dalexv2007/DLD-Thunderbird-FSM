@@ -21,8 +21,7 @@ module thunderbird_top(
 
     clock_divider u_clock_divider (
         .clk_in(CLK),
-        .clk_200Hz(), //unused
-        .clk_1Hz(clk_div)
+        .clk_out(clk_div)
     );
 
     thunderbird_FSM u_FSM (
