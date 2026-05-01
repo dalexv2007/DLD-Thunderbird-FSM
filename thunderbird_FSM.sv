@@ -5,7 +5,7 @@ module thunderbird_FSM (
     input logic RESET, 
     input logic CLK,
     output logic [5:0] LIGHTS,
-    output logic [7:0] SSEG
+    output logic [7:0] STATE
 );
 
     typedef enum logic [2:0] { //main states
@@ -69,14 +69,14 @@ module thunderbird_FSM (
     
     // Output logic:
 
-    always_comb begin // switch sets SSEG output based on current state
+    always_comb begin // switch sets STATE output based on current state
         case(current_state)
-            S_IDLE: SSEG = 8'hFF; // blank
-            S_LEFT: SSEG = 8'h10; // L
-            S_RIGHT: SSEG = 8'h20; // R
-            S_BRAKE: SSEG = 8'h0C; // b
-            S_HAZARD: SSEG = 8'h0D; // H
-            default: SSEG = 8'hFF;
+            S_IDLE: STATE = 8'hFF; // blank
+            S_LEFT: STATE = 8'h10; // L
+            S_RIGHT: STATE = 8'h20; // R
+            S_BRAKE: STATE = 8'h0C; // b
+            S_HAZARD: STATE = 8'h0D; // H
+            default: STATE = 8'hFF;
         endcase
     end
     

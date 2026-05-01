@@ -25,29 +25,16 @@ module sevseg_decoder (
     // Map FSM state to display character
     always_comb begin
         case (data_in)
-            // Left turn states (LA, LB, LC) -> display 'L'
-            8'h10, 8'h11, 8'h12: sseg_digit = 4'hA;    // Any L state -> display 'L'
-            // Right turn states (RA, RB, RC) -> display 'R'  
-            8'h20, 8'h21, 8'h22: sseg_digit = 4'hB;    // Any R state -> display 'R'
-            // Other states
-            8'h0C: sseg_digit = 4'hC;    // State B -> display 'b'
-            8'h0D: sseg_digit = 4'hD;    // State H -> display 'H'
-            8'hFF: sseg_digit = 4'hF;    // IDLE -> blank display
-            default: sseg_digit = 4'hF;  // Default to blank
+            8'h10: sseg_digit = 4'hA;  // L
+            8'h20: sseg_digit = 4'hB;  // R
+            8'h0C: sseg_digit = 4'hC;  // b
+            8'h0D: sseg_digit = 4'hD;  // H
+            default: sseg_digit = 4'hF; // blank
         endcase
-    end
-    
-    // Select which digit to display (only use rightmost display for single character)
-    always_comb begin
+
         case (counter)
-            2'b00: begin
-                // sseg_digit already set above based on STATE
-                sseg_an = 4'b1110;            // Enable display 0 (rightmost)
-            end
-            default: begin
-                sseg_digit = 4'hF;           // Blank for other displays
-                sseg_an = 4'b1111;           // All displays off
-            end
+            2'b00:  sseg_an = 4'b1110;  // rightmost display on
+            default: sseg_an = 4'b1111; // all off
         endcase
     end
     

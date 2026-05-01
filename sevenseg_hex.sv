@@ -3,9 +3,9 @@
 // Handles hex digits 0-9 and special codes A-F for FSM state letters
 
 module sevenseg_hex (
-    input  logic [3:0] hex,
-    input  logic       dp_in,     // 0 = dp ON, 1 = dp OFF (active-low)
-    output logic [7:0] ssegout
+    input  logic [3:0] hex, //what char to show
+    input  logic dp_in,     // 0 = dp ON, 1 = dp OFF (active-low)
+    output logic [7:0] ssegout //out to ssgeg display
 );
     logic [6:0] seg; // [a b c d e f g] active-low
 
