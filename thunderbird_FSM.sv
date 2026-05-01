@@ -5,7 +5,7 @@ module thunderbird_FSM (
     input logic RESET, 
     input logic CLK,
     output logic [5:0] LIGHTS,
-    output logic [7:0] STATE
+    logic [7:0] STATE
 );
 
     typedef enum logic [2:0] { //main states

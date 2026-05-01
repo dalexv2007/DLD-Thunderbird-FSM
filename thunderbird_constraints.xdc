@@ -1,3 +1,6 @@
+## Clock signal
+set_property PACKAGE_PIN L18 [get_ports CLK]
+set_property IOSTANDARD LVCMOS33 [get_ports CLK]
 
 ## Push Buttons [B3 : B0]
 # Pressed is 1, not pressed is 0.
