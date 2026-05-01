@@ -7,7 +7,7 @@ module thunderbird_top(
     output logic LC, LB, LA, RA, RB, RC,
     output logic [7:0] STATE,
     output logic [3:0] sseg_an,    // seven segment anode control (active-low)
-    output logic [7:0] ssegout,     // seven segment output [a b c d e f g dp]
+    output logic [7:0] ssegout     // seven segment output [a b c d e f g dp]
 );
 
     logic [5:0] LIGHTS;  // 6 bits for the 6 lights

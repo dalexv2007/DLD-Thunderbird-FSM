@@ -18,7 +18,8 @@ module sevseg_decoder (
     end
     
     // Update display at ~1kHz
-    always_ff @(posedge clk_divider[11]) begin
+    always_ff @(posedge CLK) begin
+        if(clk_divider[11])
         counter <= counter + 1;
     end
     
