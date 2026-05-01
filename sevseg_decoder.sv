@@ -2,48 +2,21 @@
 // Maps FSM state values to seven segment display patterns
 
 module sevseg_decoder (
-    input logic CLK,
-    input logic [7:0] data_in,      // 8-bit STATE from FSM
-    output logic [3:0] sseg_an,     // Anode control (active-low)
-    output logic [7:0] ssegout      // Segment output [a b c d e f g dp]
-);
-
-    logic [3:0] sseg_digit;
-    logic [1:0] counter;
+    input logic [2:0] data_in,      // known STATE value 0-4
+    output logic [7:0] ssegout      // formatted output to display
+); 
     
-    // Divide clock for multiplexing (use slower clock for visible display)
-    logic [19:0] clk_divider;
-    always_ff @(posedge CLK) begin
-        clk_divider <= clk_divider + 1;
-    end
-    
-    // Update display at ~1kHz
-    always_ff @(posedge CLK) begin
-        if(clk_divider[11])
-        counter <= counter + 1;
-    end
-    
-    // Map FSM state to display character
+    // Map FSM state to display character in one comb block
     always_comb begin
         case (data_in)
-            8'h10: sseg_digit = 4'hA;  // L
-            8'h20: sseg_digit = 4'hB;  // R
-            8'h0C: sseg_digit = 4'hC;  // b
-            8'h0D: sseg_digit = 4'hD;  // H
-            default: sseg_digit = 4'hF; // blank
-        endcase
+            3'd0: ssegout = 8'b11111111;  // IDLE = OFF 
+            3'd1: ssegout = 8'b11000010;  // LEFT = L
+            3'd2: ssegout = 8'b10101111;  // RIGHT = r
+            3'd3: ssegout = 8'b10000011;  // BRAKE = b
+            3'd4: ssegout = 8'b10010001;  // HAZARD = H
 
-        case (counter)
-            2'b00:  sseg_an = 4'b1110;  // rightmost display on
-            default: sseg_an = 4'b1111; // all off
+            default: ssegout = 8'b00000000; // default blank
         endcase
     end
-    
-    // Convert to seven segment
-    sevenseg_hex u_sseg (
-        .hex(sseg_digit),
-        .dp_in(1'b1),      // DP OFF (active-low)
-        .ssegout(ssegout)
-    );
 
 endmodule

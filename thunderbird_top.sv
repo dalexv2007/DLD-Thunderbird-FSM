@@ -10,7 +10,10 @@ module thunderbird_top(
 );
 
     logic [5:0] LIGHTS;  // 6 bits for the 6 lights
+    logic [2:0] STATE;   // 3-bit state for seven segment display
     logic clk_div;  // Clock divider for the seven segment display
+
+    assign sseg_an = 4'b1110; // default rightmost on, others off
 
     assign LC = LIGHTS[5];  // Bit 5 → LC
     assign LB = LIGHTS[4];  // Bit 4 → LB
@@ -36,9 +39,7 @@ module thunderbird_top(
     
     // Seven segment display decoder for STATE
     sevseg_decoder u_sevseg_decoder (
-        .CLK(CLK),
         .data_in(STATE),
-        .sseg_an(sseg_an),
         .ssegout(ssegout)
     );
     

@@ -69,14 +69,14 @@ module thunderbird_FSM (
     
     // Output logic:
 
-    always_comb begin // switch sets STATE output based on current state
+    always_comb begin // switch sets STATE for sseg.
         case(current_state)
-            S_IDLE: STATE = 8'hFF; // blank
-            S_LEFT: STATE = 8'h10; // L
-            S_RIGHT: STATE = 8'h20; // R
-            S_BRAKE: STATE = 8'h0C; // b
-            S_HAZARD: STATE = 8'h0D; // H
-            default: STATE = 8'hFF;
+            S_IDLE: STATE = 3'd0; // IDLE = 0
+            S_LEFT: STATE = 3'd1; // LEFT = 1
+            S_RIGHT: STATE = 3'd2; // RIGHT = 2
+            S_BRAKE: STATE = 3'd3; // BRAKE = 3
+            S_HAZARD: STATE = 3'd4; // HAZARD = 4
+            default: STATE = 3'd0; // default IDLE
         endcase
     end
     
